@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "../../lib/api";
-import { PROMPT_STRATEGIES, PROMPT_CATEGORIES } from "../../lib/constants/prompts";
+import { api } from "@/lib/api";
+import { PROMPT_STRATEGIES, PROMPT_CATEGORIES } from "@/lib/constants/prompts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

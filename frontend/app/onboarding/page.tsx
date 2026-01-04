@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "../../lib/api";
-import { cn } from "../../lib/utils";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const brandSchema = z.object({
   name: z.string().min(1, "Brand name is required"),

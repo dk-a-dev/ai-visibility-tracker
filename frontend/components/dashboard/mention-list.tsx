@@ -1,5 +1,5 @@
 import { Mention } from "@/types/models";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 interface MentionListProps {
   mentions: Mention[];

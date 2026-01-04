@@ -6,9 +6,9 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "../../../lib/api";
+import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
-import { cn } from "../../../lib/utils";
+import { cn } from "@/lib/utils";
 
 const signupSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters"),

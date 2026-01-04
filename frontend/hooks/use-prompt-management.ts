@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { api } from "../lib/api";
-import { PROMPT_STRATEGIES } from "../lib/constants/prompts";
+import { api } from "@/lib/api";
+import { PROMPT_STRATEGIES } from "@/lib/constants/prompts";
 
 export function usePromptManagement(projectId: string) {
   const [isLoading, setIsLoading] = useState(false);

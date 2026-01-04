@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PROMPT_CATEGORIES } from "../../lib/constants/prompts";
+import { PROMPT_CATEGORIES } from "@/lib/constants/prompts";
 
 interface PromptModalProps {
   open: boolean;

@@ -6,9 +6,9 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "../../../lib/api";
+import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
-import { cn } from "../../../lib/utils";
+import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
