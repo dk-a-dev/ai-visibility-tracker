@@ -1,0 +1,53 @@
+# Core
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic[email]==2.5.3
+pydantic-settings==2.1.0
+
+# Database
+sqlalchemy==2.0.25
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Redis & Caching
+redis==5.0.1
+hiredis==2.3.2
+
+# Celery for workers
+celery==5.3.6
+flower==2.0.1
+
+# AI Platform APIs
+openai==1.10.0
+anthropic==0.18.0
+google-genai
+perplexityai
+
+# Web Scraping (Bonus)
+playwright==1.41.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# HTTP & Async
+httpx==0.26.0
+aiohttp==3.9.1
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.6
+
+# Utilities
+python-dotenv==1.0.0
+click==8.1.7
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+httpx==0.26.0
+
+# Monitoring & Logging
+structlog==24.1.0
