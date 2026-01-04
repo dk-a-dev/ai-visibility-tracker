@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api } from "../lib/api";
 import { DashboardData, Citation, Mention, PlatformBreakdown } from "@/types/models";
 
 export function useDashboard(projectId: string, brandId?: string | null) {

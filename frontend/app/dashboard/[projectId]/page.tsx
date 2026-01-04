@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
-import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { api } from "../../../lib/api";
+import { cn } from "../../../lib/utils";
 import { 
   RefreshCw,
   ArrowLeft

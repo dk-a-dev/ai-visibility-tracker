@@ -1,5 +1,5 @@
 import { Prompt } from "@/types/models";
-import { PROMPT_CATEGORIES } from "@/lib/constants/prompts";
+import { PROMPT_CATEGORIES } from "../../lib/constants/prompts";
 import { Trash2, Edit2 } from "lucide-react";
 
 interface PromptListProps {

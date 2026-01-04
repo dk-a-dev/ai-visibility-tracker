@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
-import { api } from "@/lib/api";
+import { api } from "../../lib/api";
 import TrashIcon from "@/components/ui/trash-icon";
 
 interface Project {

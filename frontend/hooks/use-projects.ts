@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api } from "../lib/api";
 import { Project } from "@/types/models";
 
 export function useProjects() {

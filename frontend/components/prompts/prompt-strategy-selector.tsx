@@ -1,4 +1,4 @@
-import { PROMPT_STRATEGIES } from "@/lib/constants/prompts";
+import { PROMPT_STRATEGIES } from "../../lib/constants/prompts";
 
 interface PromptStrategyPreset {
   name: string;
