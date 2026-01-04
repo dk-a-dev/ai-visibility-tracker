@@ -3,6 +3,7 @@ import asyncio
 import time
 import os
 from typing import Dict, Optional
+from datetime import datetime
 import openai
 import anthropic
 try:
@@ -18,6 +19,25 @@ except ImportError:
 from app.core.config import settings
 
 
+class RateLimiter:
+    """Simple rate limiter using token bucket algorithm"""
+    def __init__(self, rpm: int):
+        self.rpm = rpm
+        self.interval = 60.0 / rpm  # seconds between requests
+        self.last_request_time = 0
+    
+    async def acquire(self):
+        """Wait if necessary to respect rate limit"""
+        current_time = time.time()
+        time_since_last_request = current_time - self.last_request_time
+        
+        if time_since_last_request < self.interval:
+            wait_time = self.interval - time_since_last_request
+            await asyncio.sleep(wait_time)
+        
+        self.last_request_time = time.time()
+
+
 class AIService:
     """Service for querying AI platforms"""
     
@@ -26,6 +46,12 @@ class AIService:
         self.anthropic_client = None
         self.gemini_client = None
         self.perplexity_client = None
+        
+        # Initialize rate limiters
+        self.openai_limiter = RateLimiter(settings.OPENAI_RPM)
+        self.anthropic_limiter = RateLimiter(settings.ANTHROPIC_RPM)
+        self.gemini_limiter = RateLimiter(settings.GEMINI_RPM)
+        self.perplexity_limiter = RateLimiter(settings.PERPLEXITY_RPM)
         
         if settings.OPENAI_API_KEY:
             self.openai_client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
@@ -51,6 +77,9 @@ class AIService:
         """
         if not self.openai_client:
             raise Exception("OpenAI API key not configured")
+        
+        # Apply rate limiting
+        await self.openai_limiter.acquire()
         
         start_time = time.time()
         
@@ -101,6 +130,9 @@ class AIService:
         if not self.anthropic_client:
             raise Exception("Anthropic API key not configured")
         
+        # Apply rate limiting
+        await self.anthropic_limiter.acquire()
+        
         start_time = time.time()
         
         try:
@@ -148,6 +180,9 @@ class AIService:
         """
         if not self.gemini_client:
             raise Exception("Gemini API key not configured")
+        
+        # Apply rate limiting
+        await self.gemini_limiter.acquire()
         
         start_time = time.time()
         
@@ -224,6 +259,9 @@ class AIService:
         """
         if not self.perplexity_client:
             raise Exception("Perplexity API key not configured")
+        
+        # Apply rate limiting
+        await self.perplexity_limiter.acquire()
         
         start_time = time.time()
         

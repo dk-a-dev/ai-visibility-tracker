@@ -53,6 +53,7 @@ class ProjectUpdate(BaseModel):
     category: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+    prompt_distribution: Optional[dict] = None
 
 
 class ProjectResponse(ProjectBase):

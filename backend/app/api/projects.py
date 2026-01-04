@@ -53,9 +53,9 @@ async def create_project(
     db.commit()
     db.refresh(project)
     
-    # Trigger prompt generation and analysis (Celery task)
-    from app.workers.tasks import start_analysis_pipeline
-    start_analysis_pipeline.delay(str(project.id))
+    # Don't auto-generate prompts - user must configure them first
+    # from app.workers.tasks import start_analysis_pipeline
+    # start_analysis_pipeline.delay(str(project.id))
     
     return ProjectResponse.model_validate(project)
 

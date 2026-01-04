@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict
 
 
 class PromptBase(BaseModel):
@@ -12,6 +12,19 @@ class PromptBase(BaseModel):
 
 class PromptCreate(PromptBase):
     pass
+
+
+class PromptUpdate(BaseModel):
+    text: Optional[str] = None
+    category: Optional[str] = None
+    intent_type: Optional[str] = None
+
+
+class PromptSetupRequest(BaseModel):
+    """Request to complete prompt setup wizard"""
+    approved_prompt_ids: List[UUID]  # IDs of prompts to keep
+    edited_prompts: Dict[UUID, str]  # prompt_id -> new text
+    custom_prompts: List[PromptCreate]  # New custom prompts to create
 
 
 class PromptResponse(PromptBase):

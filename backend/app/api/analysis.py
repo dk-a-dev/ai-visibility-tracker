@@ -15,7 +15,7 @@ from app.models.brand import Brand
 from app.models.analysis_job import AnalysisJob
 from app.schemas.analysis import (
     PromptResponse, MentionResponse, CitationResponse, AnalysisJobResponse,
-    PlatformBrandBreakdown
+    PlatformBrandBreakdown, PromptCreate, PromptUpdate, PromptSetupRequest
 )
 
 router = APIRouter()
@@ -39,6 +39,28 @@ async def trigger_analysis(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found"
+        )
+    
+    # Check if prompts exist
+    prompt_count = db.query(Prompt).filter(
+        Prompt.project_id == project_id
+    ).count()
+    
+    if prompt_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No prompts configured. Please set up prompts before running analysis."
+        )
+    
+    # Check if brands exist
+    brand_count = db.query(Brand).filter(
+        Brand.project_id == project_id
+    ).count()
+    
+    if brand_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No brands configured. Please add at least one brand before running analysis."
         )
     
     # Trigger analysis pipeline
@@ -344,3 +366,264 @@ async def get_platform_breakdown(
         ))
     
     return breakdown
+
+
+@router.post("/projects/{project_id}/prompts/create", response_model=PromptResponse, status_code=status.HTTP_201_CREATED)
+async def create_prompt(
+    project_id: UUID,
+    prompt_data: PromptCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a custom prompt"""
+    
+    # Verify project ownership
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    
+    # Create prompt
+    prompt = Prompt(
+        project_id=project_id,
+        text=prompt_data.text,
+        category=prompt_data.category,
+        intent_type=prompt_data.intent_type,
+        source="custom"  # Mark as user-created
+    )
+    
+    db.add(prompt)
+    db.commit()
+    db.refresh(prompt)
+    
+    return PromptResponse(
+        id=prompt.id,
+        project_id=prompt.project_id,
+        text=prompt.text,
+        category=prompt.category,
+        intent_type=prompt.intent_type,
+        source=prompt.source,
+        created_at=prompt.created_at,
+        response_count=0,
+        mentioned_count=0
+    )
+
+
+@router.patch("/prompts/{prompt_id}", response_model=PromptResponse)
+async def update_prompt(
+    prompt_id: UUID,
+    prompt_data: PromptUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a prompt"""
+    
+    prompt = db.query(Prompt).join(Project).filter(
+        Prompt.id == prompt_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not prompt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prompt not found"
+        )
+    
+    # Only allow editing custom prompts
+    if prompt.source != "custom":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot edit generated prompts"
+        )
+    
+    # Update fields
+    update_data = prompt_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(prompt, field, value)
+    
+    db.commit()
+    db.refresh(prompt)
+    
+    # Get response count
+    response_count = db.query(AIResponse).filter(
+        AIResponse.prompt_id == prompt.id,
+        AIResponse.status == "success"
+    ).count()
+    
+    return PromptResponse(
+        id=prompt.id,
+        project_id=prompt.project_id,
+        text=prompt.text,
+        category=prompt.category,
+        intent_type=prompt.intent_type,
+        source=prompt.source,
+        created_at=prompt.created_at,
+        response_count=response_count,
+        mentioned_count=0
+    )
+
+
+@router.delete("/prompts/{prompt_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_prompt(
+    prompt_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a prompt"""
+    
+    prompt = db.query(Prompt).join(Project).filter(
+        Prompt.id == prompt_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not prompt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prompt not found"
+        )
+    
+    db.delete(prompt)
+    db.commit()
+    
+    return None
+
+
+@router.post("/projects/{project_id}/prompts/regenerate")
+async def regenerate_prompts(
+    project_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Regenerate prompts using current distribution settings"""
+    
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    
+    # Delete old generated prompts (keep custom ones)
+    deleted_count = db.query(Prompt).filter(
+        Prompt.project_id == project_id,
+        Prompt.source == "generated"
+    ).delete()
+    
+    # Generate new prompts using current distribution
+    from app.services.prompt_generator import generate_prompts
+    
+    brand_names = [b.name for b in project.brands]
+    prompts_data = generate_prompts(
+        category=project.category,
+        brands=brand_names,
+        count=40,
+        distribution=project.prompt_distribution  # Use saved distribution
+    )
+    
+    # Save to database
+    for p_data in prompts_data:
+        prompt = Prompt(
+            project_id=project_id,
+            text=p_data["text"],
+            category=p_data["category"],
+            intent_type=p_data.get("intent_type"),
+            source="generated"
+        )
+        db.add(prompt)
+    
+    db.commit()
+    
+    return {
+        "message": "Prompts regenerated successfully",
+        "deleted_count": deleted_count,
+        "generated_count": len(prompts_data)
+    }
+
+
+@router.post("/projects/{project_id}/prompts/complete-setup")
+async def complete_prompt_setup(
+    project_id: UUID,
+    setup: PromptSetupRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Complete the prompt setup wizard.
+    - Keeps only approved prompts
+    - Updates edited prompts
+    - Creates custom prompts
+    - Deletes rejected prompts
+    """
+    
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    
+    # Get all generated prompts for this project
+    all_generated = db.query(Prompt).filter(
+        Prompt.project_id == project_id,
+        Prompt.source == "generated"
+    ).all()
+    
+    approved_ids_set = set(setup.approved_prompt_ids)
+    deleted_count = 0
+    updated_count = 0
+    
+    # Process generated prompts
+    for prompt in all_generated:
+        if prompt.id in approved_ids_set:
+            # Check if it needs editing
+            if prompt.id in setup.edited_prompts:
+                prompt.text = setup.edited_prompts[prompt.id]
+                updated_count += 1
+        else:
+            # Not approved = delete
+            db.delete(prompt)
+            deleted_count += 1
+    
+    # Create custom prompts
+    created_count = 0
+    for custom in setup.custom_prompts:
+        prompt = Prompt(
+            project_id=project_id,
+            text=custom.text,
+            category=custom.category,
+            intent_type=custom.intent_type,
+            source="custom"
+        )
+        db.add(prompt)
+        created_count += 1
+    
+    db.commit()
+    
+    # Count final prompts
+    final_count = db.query(Prompt).filter(
+        Prompt.project_id == project_id
+    ).count()
+    
+    return {
+        "message": "Prompt setup completed successfully",
+        "approved_count": len(approved_ids_set),
+        "edited_count": updated_count,
+        "deleted_count": deleted_count,
+        "created_count": created_count,
+        "final_count": final_count
+    }
+

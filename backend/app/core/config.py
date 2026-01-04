@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     # Rate Limits (requests per minute)
     OPENAI_RPM: int = int(os.getenv("OPENAI_RPM", "60"))
     ANTHROPIC_RPM: int = int(os.getenv("ANTHROPIC_RPM", "50"))
-    GEMINI_RPM: int = int(os.getenv("GEMINI_RPM", "60"))
-    PERPLEXITY_RPM: int = int(os.getenv("PERPLEXITY_RPM", "50"))
+    GEMINI_RPM: int = int(os.getenv("GEMINI_RPM", "30"))
+    PERPLEXITY_RPM: int = int(os.getenv("PERPLEXITY_RPM", "30"))
     
     # ChatGPT Web Scraping (Bonus)
     CHATGPT_SESSION_TOKEN: Optional[str] = os.getenv("CHATGPT_SESSION_TOKEN")

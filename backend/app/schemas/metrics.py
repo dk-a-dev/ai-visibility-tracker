@@ -22,6 +22,7 @@ class MetricsResponse(BaseModel):
     brand_owned_citations: int = 0
     chatgpt_visibility: Optional[Decimal] = None
     claude_visibility: Optional[Decimal] = None
+    gemini_visibility: Optional[Decimal] = None
     perplexity_visibility: Optional[Decimal] = None
     calculated_at: datetime
     

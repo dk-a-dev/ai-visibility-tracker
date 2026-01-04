@@ -4,6 +4,7 @@ from sqlalchemy import func, case
 from typing import Optional
 from uuid import UUID
 from decimal import Decimal
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -75,7 +76,7 @@ async def get_dashboard(
         metrics_response = MetricsResponse(
             brand_id=target_brand.id,
             brand_name=target_brand.name,
-            calculated_at=func.now()
+            calculated_at=datetime.utcnow()
         )
     else:
         metrics_response = MetricsResponse(
@@ -95,6 +96,7 @@ async def get_dashboard(
             brand_owned_citations=metrics.brand_owned_citations,
             chatgpt_visibility=metrics.chatgpt_visibility,
             claude_visibility=metrics.claude_visibility,
+            gemini_visibility=metrics.gemini_visibility,
             perplexity_visibility=metrics.perplexity_visibility,
             calculated_at=metrics.calculated_at
         )

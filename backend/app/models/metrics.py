@@ -37,6 +37,7 @@ class MetricsCache(Base):
     # Platform-specific visibility
     chatgpt_visibility = Column(Numeric(5, 2))
     claude_visibility = Column(Numeric(5, 2))
+    gemini_visibility = Column(Numeric(5, 2))
     perplexity_visibility = Column(Numeric(5, 2))
     
     calculated_at = Column(DateTime(timezone=True), server_default=func.now())

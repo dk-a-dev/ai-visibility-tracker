@@ -27,7 +27,7 @@ def start_analysis_pipeline(project_id: str):
     Start the complete analysis pipeline for a project
     
     Pipeline:
-    1. Generate prompts
+    1. Use existing prompts (already configured by user)
     2. Query AI platforms for each prompt
     3. Analyze responses for mentions and citations
     4. Calculate metrics
@@ -38,19 +38,34 @@ def start_analysis_pipeline(project_id: str):
         if not project:
             return {"error": "Project not found"}
         
+        # Get existing prompts
+        prompts = db.query(Prompt).filter(Prompt.project_id == project_id).all()
+        if not prompts:
+            return {"error": "No prompts configured"}
+        
+        prompt_ids = [str(p.id) for p in prompts]
+        
         # Create analysis job
         job = AnalysisJob(
             project_id=project_id,
             status="running",
             job_type="full_analysis",
-            started_at=datetime.utcnow()
+            started_at=datetime.utcnow(),
+            total_tasks=len(prompt_ids)
         )
         db.add(job)
         db.commit()
         db.refresh(job)
         
-        # Step 1: Generate prompts
-        generate_prompts_task.delay(project_id, str(job.id))
+        # Step 1: Query AI platforms for each prompt (skip prompt generation)
+        # Use Celery group to process prompts in parallel
+        query_tasks = group(
+            query_ai_platforms_task.s(prompt_id, project_id, str(job.id))
+            for prompt_id in prompt_ids
+        )
+        
+        # Use chord to calculate metrics after all queries complete
+        chord(query_tasks)(calculate_all_metrics_task.s(project_id, str(job.id)))
         
         return {"status": "started", "job_id": str(job.id)}
     
@@ -357,7 +372,7 @@ def calculate_brand_metrics_task(brand_id: str, project_id: str, total_responses
         metrics = analysis_service.calculate_metrics(mention_dicts, total_responses)
         
         # Platform-specific visibility
-        for platform in ['chatgpt', 'claude', 'perplexity']:
+        for platform in ['chatgpt', 'claude', 'gemini', 'perplexity']:
             platform_responses = db.query(AIResponse).join(
                 Prompt, AIResponse.prompt_id == Prompt.id
             ).filter(
