@@ -1,8 +1,127 @@
 # AI Visibility Tracker - Backend
 
-FastAPI backend with Celery workers for AI platform integration and analysis.
+FastAPI backend with Celery workers for AI visibility tracking across multiple platforms.
 
-## 🏗️ Architecture
+## Quick Start with Docker Compose
+
+### Prerequisites
+- Docker and Docker Compose installed
+- API keys for AI platforms
+
+### Setup
+
+1. **Configure environment variables**
+
+From the project root directory:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your API keys:
+```bash
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=AIzaSy...
+PERPLEXITY_API_KEY=pplx-...
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+```
+
+2. **Start all services**
+
+From the project root:
+```bash
+docker-compose up -d
+```
+
+This starts:
+- PostgreSQL database (port 5432)
+- Redis (port 6379)
+- FastAPI API server (port 8000)
+- Celery worker (background jobs)
+- Celery beat (scheduler)
+- Flower monitoring (port 5555)
+
+3. **Verify services are running**
+```bash
+docker-compose ps
+```
+
+4. **Check logs**
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f api
+docker-compose logs -f worker
+```
+
+5. **Access services**
+- API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+- Celery Flower: http://localhost:5555
+
+## Common Docker Commands
+
+### Start services
+```bash
+docker-compose up -d
+```
+
+### Stop services
+```bash
+docker-compose down
+```
+
+### Restart a specific service
+```bash
+docker-compose restart api
+docker-compose restart worker
+```
+
+### View logs
+```bash
+# Follow all logs
+docker-compose logs -f
+
+# Follow specific service
+docker-compose logs -f api
+docker-compose logs -f worker
+
+# Last 100 lines
+docker-compose logs --tail=100 api
+```
+
+### Rebuild after code changes
+```bash
+docker-compose up -d --build
+```
+
+### Database operations
+```bash
+# Access PostgreSQL
+docker-compose exec postgres psql -U postgres -d ai_visibility
+
+# List tables
+docker-compose exec postgres psql -U postgres -d ai_visibility -c "\dt"
+
+# Run migrations
+docker-compose exec api python -m app.init_db
+```
+
+### Redis operations
+```bash
+# Access Redis CLI
+docker-compose exec redis redis-cli
+
+# Check Redis keys
+docker-compose exec redis redis-cli KEYS "*"
+
+# Monitor Redis
+docker-compose exec redis redis-cli MONITOR
+```
+
+## Architecture
 
 ```
 backend/
@@ -45,20 +164,31 @@ backend/
 └── requirements.txt
 ```
 
-## 🚀 Quick Start
+## Development Setup (Without Docker)
+
+### Prerequisites
+- Python 3.11
+- PostgreSQL 15
+- Redis
 
 ### 1. Set up virtual environment
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+cd backend
+python3.11 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
 ### 2. Configure environment variables
 
-Create a `.env` file in the backend directory:
+From project root, copy and edit `.env`:
 
+```bash
+cp ../.env.example ../.env
+```
+
+Edit with your settings:
 ```env
 # Database
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ai_visibility
@@ -66,32 +196,30 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ai_visibility
 # Redis
 REDIS_URL=redis://localhost:6379/0
 
-# JWT
+# Security
 JWT_SECRET=your-super-secret-key-change-this
 
 # AI Platform APIs (required)
-OPENAI_API_KEY=sk-your-openai-api-key
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key
-
-# Optional
-PERPLEXITY_API_KEY=
-CHATGPT_SESSION_TOKEN=
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=AIzaSy...
+PERPLEXITY_API_KEY=pplx-...
 ```
 
 ### 3. Initialize database
 
 ```bash
-# Make sure PostgreSQL is running
-python scripts/init_db.py init
+# Create database
+createdb ai_visibility
+
+# Load schema
+psql ai_visibility < ../database/schema.sql
+
+# Initialize tables
+python -m app.init_db
 ```
 
-### 4. Test the setup
-
-```bash
-python scripts/test_setup.py
-```
-
-### 5. Start the API server
+### 4. Start the API server
 
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -99,15 +227,22 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 API will be available at:
 - API: http://localhost:8000
-- Docs: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+- API Documentation: http://localhost:8000/docs
 
-### 6. Start Celery worker
-
-In a separate terminal:
+### 5. Start Celery worker (separate terminal)
 
 ```bash
+cd backend
+source venv/bin/activate
 celery -A app.worker.celery_app worker --loglevel=info --concurrency=4
+```
+
+### 6. (Optional) Start Celery beat (separate terminal)
+
+```bash
+cd backend
+source venv/bin/activate
+celery -A app.worker.celery_app beat --loglevel=info
 ```
 
 ### 7. (Optional) Start Flower for monitoring
@@ -118,7 +253,7 @@ celery -A app.worker.celery_app flower --port=5555
 
 Visit http://localhost:5555 to monitor workers.
 
-## 📚 API Endpoints
+## API Endpoints
 
 ### Authentication
 
