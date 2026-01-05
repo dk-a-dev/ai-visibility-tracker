@@ -20,5 +20,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run migrations and start app
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Run database initialization and start app
+CMD python -m app.init_db && uvicorn app.main:app --host 0.0.0.0 --port 8000
