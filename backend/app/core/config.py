@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list = [
         "http://localhost:3000",
         "http://localhost:8000",
-        "https://ai-visibility-tracker.vercel.app"
+        "https://ai-visibility-tracker-nine.vercel.app"
     ]
     
     # Cache TTL (seconds)
