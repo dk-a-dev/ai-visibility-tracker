@@ -121,25 +121,7 @@ services:
       - redis
       - worker
     command: celery -A app.worker.celery_app flower --port=5555
-
-  # Frontend (Next.js)
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: ai_visibility_frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-    depends_on:
-      - api
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    command: npm run dev
-
+    
 volumes:
   postgres_data:
   redis_data:
