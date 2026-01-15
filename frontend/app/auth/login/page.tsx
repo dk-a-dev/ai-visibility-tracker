@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "@/lib/api";
+import { authApi } from "@/services/api";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +36,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await api.post("/auth/login", data);
-      const { access_token, user } = response.data;
+      const { access_token, user } = await authApi.login(data);
       setAuth(user, access_token);
       router.push("/dashboard");
     } catch (err: any) {

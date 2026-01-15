@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "@/lib/api";
+import { authApi } from "@/services/api";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
@@ -42,8 +42,7 @@ export default function SignupPage() {
 
     try {
       const { confirmPassword, ...registerData } = data;
-      const response = await api.post("/auth/register", registerData);
-      const { access_token, user } = response.data;
+      const { access_token, user } = await authApi.register(registerData);
       setAuth(user, access_token);
       router.push("/onboarding");
     } catch (err: any) {

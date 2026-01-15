@@ -4,17 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
-import { api } from "@/lib/api";
-import TrashIcon from "@/components/ui/trash-icon";
-
-interface Project {
-  id: string;
-  name: string;
-  category: string;
-  status: string;
-  created_at: string;
-  brand_count: number;
-}
+import { projectsApi } from "@/services/api";
+import { ProjectCard, EmptyProjectState } from "@/components/projects";
+import type { Project } from "@/types";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -33,8 +25,8 @@ export default function DashboardPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await api.get("/projects");
-      setProjects(response.data);
+      const projects = await projectsApi.list();
+      setProjects(projects);
     } catch (error) {
       console.error("Failed to fetch projects:", error);
     } finally {
@@ -50,7 +42,7 @@ export default function DashboardPage() {
     }
 
     try {
-      await api.delete(`/projects/${projectId}`);
+      await projectsApi.delete(projectId);
       // Remove the project from the list
       setProjects(projects.filter(p => p.id !== projectId));
     } catch (error) {
@@ -109,62 +101,15 @@ export default function DashboardPage() {
         </div>
 
         {projects.length === 0 ? (
-          <div className="text-center py-16 bg-card border border-border rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
-            <p className="text-muted-foreground mb-6">
-              Create your first project to start tracking
-            </p>
-            <Link
-              href="/onboarding"
-              className="inline-block px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-md transition-colors"
-            >
-              Create Project
-            </Link>
-          </div>
+          <EmptyProjectState />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
-              <div
+              <ProjectCard
                 key={project.id}
-                className="relative bg-card border border-border rounded-lg hover:border-primary-500 transition-colors group"
-              >
-                <Link
-                  href={`/dashboard/${project.id}`}
-                  className="block p-6"
-                >
-                  <div className="flex items-start justify-between mb-4 pr-8">
-                    <h3 className="text-xl font-semibold">{project.name}</h3>
-                    <span
-                      className={`px-2 py-1 text-xs rounded ${
-                        project.status === "active"
-                          ? "bg-primary-500/20 text-primary-500"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {project.status}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {project.category}
-                  </p>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {project.brand_count} brand
-                      {project.brand_count !== 1 ? "s" : ""}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {new Date(project.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </Link>
-                <button
-                  onClick={(e) => handleDeleteProject(project.id, project.name, e)}
-                  className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-red-500 transition-all duration-200 z-10"
-                  title="Delete project"
-                >
-                  <TrashIcon size={18} />
-                </button>
-              </div>
+                project={project}
+                onDelete={handleDeleteProject}
+              />
             ))}
           </div>
         )}

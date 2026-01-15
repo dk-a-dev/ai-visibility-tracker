@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
-import { api } from "@/lib/api";
+import { projectsApi } from "@/services/api";
 import { PromptSetupWizard } from "@/components/prompts";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
@@ -27,8 +27,8 @@ export default function PromptSetupPage() {
 
   const fetchProject = async () => {
     try {
-      const response = await api.get(`/projects/${projectId}`);
-      setProjectName(response.data.name);
+      const project = await projectsApi.get(projectId);
+      setProjectName(project.name);
     } catch (error) {
       console.error("Failed to fetch project:", error);
     } finally {

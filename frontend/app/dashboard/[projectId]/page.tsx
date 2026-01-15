@@ -5,15 +5,24 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
-import { api } from "@/lib/api";
+import { brandsApi, analysisApi, dashboardApi } from "@/services/api";
 import { cn } from "@/lib/utils";
 import { 
   RefreshCw,
   ArrowLeft
 } from "lucide-react";
-import { BrandComparisonList } from "@/components/dashboard/brand-comparison-list";
-import { JobStatusBanner } from "@/components/dashboard/job-status-banner";
-import { Brand } from "@/types/models";
+import {
+  BrandComparisonList,
+  JobStatusBanner,
+  MetricCard,
+  PlatformCard,
+  PositionCard,
+  CitationList,
+  MentionList,
+  PlatformComparisonChart,
+} from "@/components/dashboard";
+import { Brand, PlatformBreakdown, Citation, Mention, Metrics } from "@/types/models";
+import { DashboardResponse } from "@/types";
 import { useJobPolling } from "@/hooks";
 import ChartLineIcon from "@/components/ui/chart-line-icon";
 import MessageCircleIcon from "@/components/ui/message-circle-icon";
@@ -22,83 +31,6 @@ import ChartHistogramIcon from "@/components/ui/chart-histogram-icon";
 import WorldIcon from "@/components/ui/world-icon";
 import LinkIcon from "@/components/ui/link-icon";
 import RosetteDiscountCheckIcon from "@/components/ui/rosette-discount-check-icon";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line
-} from "recharts";
-
-interface Metrics {
-  brand_id: string;
-  brand_name: string;
-  visibility_score: string | null;
-  answers_mentioned: number | null;
-  total_answers: number | null;
-  avg_position: string | null;
-  sentiment_score: string | null;
-  market_share: string | null;
-  first_position_count: number | null;
-  second_position_count: number | null;
-  third_position_count: number | null;
-  total_citations: number | null;
-  unique_domains_cited: number | null;
-  brand_owned_citations: number | null;
-  chatgpt_visibility: string | null;
-  claude_visibility: string | null;
-  gemini_visibility: string | null;
-  perplexity_visibility: string | null;
-  calculated_at: string;
-}
-
-interface DashboardData {
-  project_id: string;
-  project_name: string;
-  category: string;
-  metrics: Metrics;
-  leaderboard?: any[];
-  total_prompts?: number;
-  total_responses?: number;
-  platform_breakdown?: any[];
-}
-
-interface PlatformBreakdown {
-  platform: string;
-  brand_name: string;
-  total_responses: number;
-  mentions: number;
-  avg_position: number | null;
-  avg_sentiment: number | null;
-  recommended_count: number;
-  visibility_pct: number;
-}
-
-interface Citation {
-  id: string;
-  url: string;
-  title: string | null;
-  domain: string;
-  is_brand_owned: boolean;
-  platform: string;
-}
-
-interface Mention {
-  id: string;
-  brand_name: string;
-  position: number | null;
-  context: string | null;
-  sentiment: string;
-  platform: string;
-}
 
 export default function ProjectDashboardPage() {
   const router = useRouter();
@@ -107,7 +39,7 @@ export default function ProjectDashboardPage() {
   const projectId = params.projectId as string;
   const brandIdParam = searchParams.get("brand_id");
   const { isAuthenticated } = useAuthStore();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<DashboardResponse | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(brandIdParam);
   const [platformData, setPlatformData] = useState<PlatformBreakdown[]>([]);
@@ -144,13 +76,13 @@ export default function ProjectDashboardPage() {
 
   const fetchBrands = async () => {
     try {
-      const response = await api.get(`/projects/${projectId}/brands`);
-      setBrands(response.data);
+      const brands = await brandsApi.list(projectId);
+      setBrands(brands);
       
       // Also check prompt count
       try {
-        const promptsRes = await api.get(`/analysis/projects/${projectId}/prompts`);
-        setPromptCount(promptsRes.data.length);
+        const prompts = await analysisApi.getPrompts(projectId);
+        setPromptCount(prompts.length);
       } catch (err) {
         console.warn("Failed to fetch prompts:", err);
       }
@@ -166,31 +98,28 @@ export default function ProjectDashboardPage() {
       console.log("API Base URL:", process.env.NEXT_PUBLIC_API_URL);
       console.log("Token:", localStorage.getItem("token") ? "exists" : "missing");
       
-      const url = selectedBrandId 
-        ? `/dashboard/${projectId}?brand_id=${selectedBrandId}`
-        : `/dashboard/${projectId}`;
-      const dashboardRes = await api.get(url);
-      console.log("Dashboard response:", dashboardRes.data);
-      setData(dashboardRes.data);
+      const dashboardData = await dashboardApi.get(projectId, selectedBrandId || undefined);
+      console.log("Dashboard response:", dashboardData);
+      setData(dashboardData);
 
       // Fetch additional data independently, don't fail if they error
       Promise.all([
-        api.get(`/analysis/projects/${projectId}/platform-breakdown`)
-          .then(res => {
-            console.log("Platform data loaded:", res.data.length);
-            setPlatformData(res.data);
+        analysisApi.getPlatformBreakdown(projectId)
+          .then(data => {
+            console.log("Platform data loaded:", data.length);
+            setPlatformData(data);
           })
           .catch(err => console.warn("Failed to fetch platform data:", err.message)),
-        api.get(`/analysis/projects/${projectId}/citations?limit=10`)
-          .then(res => {
-            console.log("Citations loaded:", res.data.length);
-            setCitations(res.data);
+        analysisApi.getCitations(projectId, 10)
+          .then(data => {
+            console.log("Citations loaded:", data.length);
+            setCitations(data);
           })
           .catch(err => console.warn("Failed to fetch citations:", err.message)),
-        api.get(`/analysis/projects/${projectId}/mentions?limit=20`)
-          .then(res => {
-            console.log("Mentions loaded:", res.data.length);
-            setMentions(res.data);
+        analysisApi.getMentions(projectId, 20)
+          .then(data => {
+            console.log("Mentions loaded:", data.length);
+            setMentions(data);
           })
           .catch(err => console.warn("Failed to fetch mentions:", err.message))
       ]);
@@ -335,7 +264,7 @@ export default function ProjectDashboardPage() {
             title="Visibility Score"
             value={
               metrics.visibility_score !== null
-                ? `${parseFloat(metrics.visibility_score).toFixed(1)}%`
+                ? `${metrics.visibility_score.toFixed(1)}%`
                 : "N/A"
             }
             description="Overall visibility across AI platforms"
@@ -355,7 +284,7 @@ export default function ProjectDashboardPage() {
             title="Avg Position"
             value={
               metrics.avg_position !== null
-                ? parseFloat(metrics.avg_position).toFixed(1)
+                ? metrics.avg_position.toFixed(1)
                 : "N/A"
             }
             description="Average ranking position"
@@ -365,7 +294,7 @@ export default function ProjectDashboardPage() {
             title="Market Share"
             value={
               metrics.market_share !== null
-                ? `${parseFloat(metrics.market_share).toFixed(1)}%`
+                ? `${metrics.market_share.toFixed(1)}%`
                 : "N/A"
             }
             description="Share of total mentions"
@@ -418,19 +347,7 @@ export default function ProjectDashboardPage() {
               <WorldIcon size={20} />
               Platform Comparison
             </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={platformData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="platform" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="visibility_pct" fill="#8b5cf6" name="Visibility %" />
-                  <Bar dataKey="mentions" fill="#10b981" name="Mentions" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <PlatformComparisonChart data={platformData} />
           </div>
         )}
 
@@ -441,38 +358,7 @@ export default function ProjectDashboardPage() {
               <MessageCircleIcon size={20} />
               Recent Mentions
             </h3>
-            <div className="space-y-4">
-              {mentions.slice(0, 5).map((mention) => (
-                <div key={mention.id} className="border-b border-border pb-4 last:border-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{mention.brand_name}</span>
-                      <span className="text-xs px-2 py-1 bg-accent rounded">
-                        {mention.platform}
-                      </span>
-                    </div>
-                    {mention.position && (
-                      <span className="text-sm text-muted-foreground">
-                        Position #{mention.position}
-                      </span>
-                    )}
-                  </div>
-                  {mention.context && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {mention.context}
-                    </p>
-                  )}
-                  <span className={cn(
-                    "text-xs mt-2 inline-block px-2 py-1 rounded",
-                    mention.sentiment === "positive" && "bg-green-500/10 text-green-500",
-                    mention.sentiment === "negative" && "bg-red-500/10 text-red-500",
-                    mention.sentiment === "neutral" && "bg-gray-500/10 text-gray-500"
-                  )}>
-                    {mention.sentiment}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <MentionList mentions={mentions} limit={5} />
           </div>
         )}
 
@@ -483,32 +369,7 @@ export default function ProjectDashboardPage() {
               <LinkIcon size={20} />
               Top Citations
             </h3>
-            <div className="space-y-3">
-              {citations.map((citation) => (
-                <div key={citation.id} className="flex items-start gap-3 p-3 hover:bg-accent rounded-lg transition-colors">
-                  <LinkIcon size={16} className="mt-1 text-muted-foreground" />
-                  <div className="flex-1 min-w-0">
-                    <a
-                      href={citation.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-primary-500 hover:underline block truncate"
-                    >
-                      {citation.title || citation.url}
-                    </a>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">{citation.domain}</span>
-                      <span className="text-xs px-2 py-0.5 bg-accent rounded">{citation.platform}</span>
-                      {citation.is_brand_owned && (
-                        <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-500 rounded">
-                          Brand Owned
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <CitationList citations={citations} />
           </div>
         )}
 
@@ -540,72 +401,6 @@ export default function ProjectDashboardPage() {
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-function MetricCard({
-  icon,
-  title,
-  value,
-  description,
-}: {
-  icon?: React.ReactNode;
-  title: string;
-  value: string;
-  description: string;
-}) {
-  return (
-    <div className="bg-card border border-border rounded-lg p-6">
-      <div className="flex items-center gap-2 mb-2">
-        {icon && <div className="text-primary-500">{icon}</div>}
-        <h3 className="text-sm font-medium text-muted-foreground">
-          {title}
-        </h3>
-      </div>
-      <p className="text-3xl font-bold mb-1">{value}</p>
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-function PlatformCard({
-  name,
-  visibility,
-}: {
-  name: string;
-  visibility: string | null;
-}) {
-  const score = visibility !== null ? parseFloat(visibility) : 0;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="font-medium">{name}</span>
-        <span className="text-sm text-muted-foreground">
-          {visibility !== null ? `${score.toFixed(1)}%` : "N/A"}
-        </span>
-      </div>
-      <div className="w-full bg-muted rounded-full h-2">
-        <div
-          className="bg-primary-500 h-2 rounded-full transition-all"
-          style={{ width: `${Math.min(score, 100)}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function PositionCard({
-  position,
-  count,
-}: {
-  position: string;
-  count: number;
-}) {
-  return (
-    <div className="text-center">
-      <div className="text-4xl font-bold mb-2">{count}</div>
-      <div className="text-sm text-muted-foreground">{position} Position</div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
-import { api } from "@/lib/api";
+import { analysisApi } from "@/services/api";
 import { PromptSetupWizard } from "@/components/prompts/prompt-setup-wizard";
 import { useJobPolling } from "@/hooks";
 import { useToast } from "@/hooks/use-toast";
@@ -74,8 +74,8 @@ export default function AnalysisPage() {
 
   const fetchData = async () => {
     try {
-      const promptsRes = await api.get(`/analysis/projects/${projectId}/prompts`);
-      setPrompts(promptsRes.data);
+      const prompts = await analysisApi.getPrompts(projectId);
+      setPrompts(prompts);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
@@ -95,7 +95,7 @@ export default function AnalysisPage() {
 
     setIsAnalyzing(true);
     try {
-      await api.post(`/analysis/projects/${projectId}/analyze`);
+      await analysisApi.analyze(projectId);
       // Start polling for job updates
       startPolling();
       toast({

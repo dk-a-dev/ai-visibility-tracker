@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "@/lib/api";
+import { projectsApi } from "@/services/api";
 import { cn } from "@/lib/utils";
 
 const brandSchema = z.object({
@@ -94,9 +94,9 @@ export default function OnboardingPage() {
       };
       
       console.log("Sending project data:", projectData);
-      const response = await api.post("/projects", projectData);
-      console.log("Project created:", response.data);
-      router.push(`/dashboard/${response.data.id}`);
+      const project = await projectsApi.create(projectData);
+      console.log("Project created:", project);
+      router.push(`/dashboard/${project.id}`);
     } catch (err: any) {
       console.error("Error creating project:", err);
       setError(
