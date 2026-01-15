@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { analysisApi } from "@/services/api";
 import { Prompt, AnalysisJob } from "@/types/models";
 
 export function useAnalysis(projectId: string) {
@@ -10,8 +10,8 @@ export function useAnalysis(projectId: string) {
 
   const fetchPrompts = async () => {
     try {
-      const response = await api.get(`/analysis/projects/${projectId}/prompts`);
-      setPrompts(response.data);
+      const prompts = await analysisApi.getPrompts(projectId);
+      setPrompts(prompts);
     } catch (err: any) {
       console.error("Failed to fetch prompts:", err);
       setError(err.message || "Failed to fetch prompts");
@@ -20,8 +20,8 @@ export function useAnalysis(projectId: string) {
 
   const fetchJobs = async () => {
     try {
-      const response = await api.get(`/analysis/projects/${projectId}/jobs`);
-      setJobs(response.data);
+      const jobs = await analysisApi.getJobs(projectId);
+      setJobs(jobs);
     } catch (err: any) {
       console.error("Failed to fetch jobs:", err);
       setError(err.message || "Failed to fetch jobs");
@@ -32,7 +32,7 @@ export function useAnalysis(projectId: string) {
     try {
       setIsLoading(true);
       setError(null);
-      await api.post(`/analysis/projects/${projectId}/analyze`);
+      await analysisApi.analyze(projectId);
       await fetchJobs();
     } catch (err: any) {
       console.error("Failed to start analysis:", err);

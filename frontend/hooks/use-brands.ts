@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { brandsApi } from "@/services/api";
 import { Brand } from "@/types/models";
 
 export function useBrands(projectId: string) {
@@ -11,8 +11,8 @@ export function useBrands(projectId: string) {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get(`/projects/${projectId}/brands`);
-      setBrands(response.data);
+      const brands = await brandsApi.list(projectId);
+      setBrands(brands);
     } catch (err: any) {
       console.error("Failed to fetch brands:", err);
       setError(err.message || "Failed to fetch brands");

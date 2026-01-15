@@ -1,10 +1,10 @@
 interface PlatformCardProps {
   name: string;
-  visibility: string | null;
+  visibility: number | null;
 }
 
 export function PlatformCard({ name, visibility }: PlatformCardProps) {
-  const score = visibility !== null ? parseFloat(visibility) : 0;
+  const score = visibility !== null ? visibility : 0;
   
   return (
     <div className="space-y-2">

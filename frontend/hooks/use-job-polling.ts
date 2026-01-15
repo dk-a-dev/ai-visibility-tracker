@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { api } from "@/lib/api";
+import { analysisApi } from "@/services/api";
 
 export interface AnalysisJob {
   id: string;
@@ -41,8 +41,7 @@ export function useJobPolling({
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get(`/analysis/projects/${projectId}/jobs`);
-      const newJobs = response.data as AnalysisJob[];
+      const newJobs = await analysisApi.getJobs(projectId) as AnalysisJob[];
       setJobs(newJobs);
 
       // Check if there are any active jobs

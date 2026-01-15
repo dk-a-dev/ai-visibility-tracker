@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "@/lib/api";
+import { projectsApi, analysisApi } from "@/services/api";
 import { PROMPT_STRATEGIES } from "@/lib/constants/prompts";
 
 export function usePromptManagement(projectId: string) {
@@ -16,7 +16,7 @@ export function usePromptManagement(projectId: string) {
         throw new Error("Invalid strategy");
       }
 
-      await api.patch(`/projects/${projectId}`, {
+      await projectsApi.patch(projectId, {
         prompt_distribution: strategy.distribution,
       });
     } catch (err: any) {
@@ -33,11 +33,7 @@ export function usePromptManagement(projectId: string) {
       setIsLoading(true);
       setError(null);
       
-      const response = await api.post(
-        `/analysis/projects/${projectId}/prompts/regenerate`
-      );
-      
-      return response.data;
+      return await analysisApi.regeneratePrompts(projectId);
     } catch (err: any) {
       console.error("Failed to regenerate prompts:", err);
       setError(err.message || "Failed to regenerate prompts");
@@ -52,12 +48,7 @@ export function usePromptManagement(projectId: string) {
       setIsLoading(true);
       setError(null);
       
-      const response = await api.post(
-        `/analysis/projects/${projectId}/prompts/create`,
-        { text, category }
-      );
-      
-      return response.data;
+      return await analysisApi.createCustomPrompt(projectId, text, category);
     } catch (err: any) {
       console.error("Failed to create prompt:", err);
       setError(err.message || "Failed to create prompt");
@@ -75,9 +66,7 @@ export function usePromptManagement(projectId: string) {
       setIsLoading(true);
       setError(null);
       
-      const response = await api.patch(`/analysis/prompts/${promptId}`, data);
-      
-      return response.data;
+      return await analysisApi.updatePrompt(promptId, data);
     } catch (err: any) {
       console.error("Failed to update prompt:", err);
       setError(err.message || "Failed to update prompt");
@@ -92,7 +81,7 @@ export function usePromptManagement(projectId: string) {
       setIsLoading(true);
       setError(null);
       
-      await api.delete(`/analysis/prompts/${promptId}`);
+      await analysisApi.deletePrompt(promptId);
     } catch (err: any) {
       console.error("Failed to delete prompt:", err);
       setError(err.message || "Failed to delete prompt");

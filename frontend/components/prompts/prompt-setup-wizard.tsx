@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { PROMPT_STRATEGIES, PROMPT_CATEGORIES } from "@/lib/constants/prompts";

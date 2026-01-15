@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
-import { Project } from "@/types/models";
+import { projectsApi } from "@/services/api";
+import { Project } from "@/types";
 
 export function useProjects() {
   const router = useRouter();
@@ -13,8 +13,8 @@ export function useProjects() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get("/projects");
-      setProjects(response.data);
+      const projects = await projectsApi.list();
+      setProjects(projects);
     } catch (err: any) {
       console.error("Failed to fetch projects:", err);
       setError(err.message || "Failed to fetch projects");
@@ -29,7 +29,7 @@ export function useProjects() {
 
   const deleteProject = async (projectId: string) => {
     try {
-      await api.delete(`/projects/${projectId}`);
+      await projectsApi.delete(projectId);
       setProjects(projects.filter((p) => p.id !== projectId));
     } catch (err: any) {
       console.error("Failed to delete project:", err);

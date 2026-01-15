@@ -42,7 +42,7 @@ export interface Project {
   prompt_distribution?: string;
   status: string;
   created_at: string;
-  brand_count?: number;
+  brand_count: number;
   brands?: Brand[];
 }
 
@@ -75,13 +75,20 @@ export interface Metrics {
   brand_owned_citations: number | null;
   chatgpt_visibility: number | null;
   claude_visibility: number | null;
+  gemini_visibility: number | null;
   perplexity_visibility: number | null;
   calculated_at: string;
 }
 
 export interface DashboardResponse {
-  project: Project;
+  project_id: string;
+  project_name: string;
+  category: string;
   metrics: Metrics;
+  leaderboard?: any[];
+  total_prompts?: number;
+  total_responses?: number;
+  platform_breakdown?: any[];
 }
 
 export interface LeaderboardItem {

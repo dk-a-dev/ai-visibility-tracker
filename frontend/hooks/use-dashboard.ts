@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
-import { DashboardData, Citation, Mention, PlatformBreakdown } from "@/types/models";
+import { dashboardApi, analysisApi } from "@/services/api";
+import { DashboardResponse } from "@/types";
+import { Citation, Mention, PlatformBreakdown } from "@/types/models";
 
 export function useDashboard(projectId: string, brandId?: string | null) {
   const router = useRouter();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<DashboardResponse | null>(null);
   const [platformData, setPlatformData] = useState<PlatformBreakdown[]>([]);
   const [citations, setCitations] = useState<Citation[]>([]);
   const [mentions, setMentions] = useState<Mention[]>([]);
@@ -25,33 +26,27 @@ export function useDashboard(projectId: string, brandId?: string | null) {
       const params = brandId ? { brand_id: brandId } : {};
 
       // Fetch main dashboard data
-      const response = await api.get(`/dashboard/${projectId}`, { params });
-      setData(response.data);
+      const data = await dashboardApi.get(projectId, brandId || undefined);
+      setData(data);
 
       // Fetch additional data independently
       try {
-        const platformResponse = await api.get(
-          `/analysis/projects/${projectId}/platform-breakdown`
-        );
-        setPlatformData(platformResponse.data);
+        const platformData = await analysisApi.getPlatformBreakdown(projectId);
+        setPlatformData(platformData);
       } catch (err) {
         console.error("Failed to fetch platform breakdown:", err);
       }
 
       try {
-        const citationsResponse = await api.get(
-          `/analysis/projects/${projectId}/citations`
-        );
-        setCitations(citationsResponse.data);
+        const citations = await analysisApi.getCitations(projectId);
+        setCitations(citations);
       } catch (err) {
         console.error("Failed to fetch citations:", err);
       }
 
       try {
-        const mentionsResponse = await api.get(
-          `/analysis/projects/${projectId}/mentions`
-        );
-        setMentions(mentionsResponse.data);
+        const mentions = await analysisApi.getMentions(projectId);
+        setMentions(mentions);
       } catch (err) {
         console.error("Failed to fetch mentions:", err);
       }
